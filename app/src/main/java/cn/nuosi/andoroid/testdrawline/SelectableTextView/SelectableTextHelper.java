@@ -19,7 +19,6 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.method.LinkMovementMethod;
 import android.text.style.BackgroundColorSpan;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -97,12 +96,24 @@ public class SelectableTextHelper {
      */
     private boolean isHideWhenScroll;
     private boolean isHide = true;
+    private int length;
 
     private ViewTreeObserver.OnPreDrawListener mOnPreDrawListener;
     /**
      * 滑动状态改变时的监听器
      */
     private ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener;
+
+    private int top;
+    private int bottom;
+
+    public void setTop(int top) {
+        this.top = top;
+    }
+
+    public void setBottom(int bottom) {
+        this.bottom = bottom;
+    }
 
     private SelectableTextHelper(Builder builder) {
         mTextView = builder.mTextView;
@@ -116,6 +127,7 @@ public class SelectableTextHelper {
     }
 
     private void init() {
+        length = mTextView.getText().length();
         // 由于 TextView 的文本的 BufferType 类型；
         // 是 SPANNABLE 时才可以设置 Span ，实现选中的效果；
         mTextView.setText(mTextView.getText(), TextView.BufferType.SPANNABLE);
@@ -127,17 +139,24 @@ public class SelectableTextHelper {
                 mSpannable = (Spannable) mTextView.getText();
             }
             for (final Book bean : mBookList) {
-                TextPaint textPaint = getPaint(new TextPaint(
-                        new Paint(Paint.ANTI_ALIAS_FLAG)), bean.getColor());
-                MyClickableSpan clickSpan = new MyClickableSpan(textPaint) {
-                    @Override
-                    public void onClick(View widget) {
-                        clickSelectSpan(bean.getStart(), bean.getEnd());
+                if (length > bean.getStart()) {
+                    if (bean.getEnd() >= length) {
+                        bean.setEnd(length - 1);
                     }
-                };
-                clickSpanMap.append(bean.getStart(), clickSpan);
-                mSpannable.setSpan(clickSpan, bean.getStart(), bean.getEnd(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                mTextView.setText(mSpannable);
+                    TextPaint textPaint = getPaint(new TextPaint(
+                            new Paint(Paint.ANTI_ALIAS_FLAG)), bean.getColor());
+                    MyClickableSpan clickSpan = new MyClickableSpan(textPaint) {
+                        @Override
+                        public void onClick(View widget) {
+                            clickSelectSpan(bean.getStart(), bean.getEnd());
+                        }
+                    };
+                    clickSpanMap.append(bean.getStart(), clickSpan);
+                    mSpannable.setSpan(clickSpan, bean.getStart(), bean.getEnd(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    mTextView.setText(mSpannable);
+                } else {
+                    //TODO 删除标注
+                }
             }
             mTextView.setMovementMethod(LinkMovementMethod.getInstance());
         }
@@ -372,7 +391,7 @@ public class SelectableTextHelper {
         MyClickableSpan mClickableSpan;
         if (mSpannable != null) {
             if (clickSpanMap.get(mSelectionInfo.getStart()) != null) {
-                mClickableSpan = clickSpanMap.get(mTextView.getSelectionStart());
+                mClickableSpan = clickSpanMap.get(mSelectionInfo.getStart());
                 mClickableSpan.setTextPaint(paint);
                 // 更新标记的方法
                 updateNote();
@@ -420,8 +439,9 @@ public class SelectableTextHelper {
 
     /**
      * 给定首字符的索引值返回指定的标注对象
+     *
      * @param index:给定查找时的首字索引值
-     * @return  返回指定的查找对象
+     * @return 返回指定的查找对象
      */
     private Book getBook(int index) {
         for (Book bean : mBookList) {
@@ -708,14 +728,39 @@ public class SelectableTextHelper {
             // 定位弹窗位置
             Layout layout = mTextView.getLayout();
             // 得到当前字符段的左边X坐标+Y坐标
-            int posX = (int) layout.getPrimaryHorizontal(mSelectionInfo.getStart() + mLocation[0]);
+            int posX = (int) layout.getPrimaryHorizontal(mSelectionInfo.getStart());
             int posY = layout.getLineTop(layout.getLineForOffset(
-                    mSelectionInfo.getStart())) + mLocation[1] - mHeight - 16;
+                    mSelectionInfo.getStart())) + mLocation[1];
             // 设置边界值
             if (posX <= 0) posX = 16;
-            if (posY < 0) posY = 16;
+
+            if (posY < top) {//被选中的顶部滑出了上边界
+                posY = layout.getLineBottom(layout.getLineForOffset(
+                        mSelectionInfo.getEnd())) + mLocation[1];
+                if (posY < top) {//被选中的底部出了上边界
+                    return;
+                }
+                posY = posY + 16;
+            } else if (posY > bottom) {//被选中的顶部滑出了下边界
+                return;
+            } else {
+                posY = posY - mHeight - 16;
+                if (posY < top) {//操作框超出上边界
+                    posY = layout.getLineBottom(layout.getLineForOffset(
+                            mSelectionInfo.getEnd())) + mLocation[1];
+                    if (posY < top) {//被选中的底部出了上边界
+                        return;
+                    }
+                    posY = posY + 16;
+                }
+            }
+
             if ((posX + mWidth) > TextLayoutUtil.getScreenWidth(mContext)) {
                 posX = TextLayoutUtil.getScreenWidth(mContext) - mWidth - 16;
+            }
+            if (posY > TextLayoutUtil.getScreenHeight(mContext) - mHeight) {
+                posY = TextLayoutUtil.getScreenHeight(mContext) / 2 - mHeight / 2;
+                posX = TextLayoutUtil.getScreenWidth(mContext) / 2 - mWidth / 2;
             }
             // 设置阴影效果
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -899,6 +944,10 @@ public class SelectableTextHelper {
         public void show(int x, int y) {
             mTextView.getLocationInWindow(mLocation);
             int offset = isLeft ? mWidth : 0;
+            int posY = y + getExtraY();
+            if (posY < top || posY > bottom) {
+                return;
+            }
             mPopupWindow.showAtLocation(mTextView, Gravity.NO_GRAVITY, x - offset + getExtraX(), y + getExtraY());
         }
 
@@ -922,7 +971,7 @@ public class SelectableTextHelper {
          * 返回游标类型
          *
          * @param isLeft:判断是否为起始游标
-         * @return  返回指定的游标对象
+         * @return 返回指定的游标对象
          */
         private CursorHandle getCursorHandle(boolean isLeft) {
             if (mStartHandle.isLeft == isLeft) {

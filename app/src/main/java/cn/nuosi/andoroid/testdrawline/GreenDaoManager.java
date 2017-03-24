@@ -1,7 +1,5 @@
 package cn.nuosi.andoroid.testdrawline;
 
-import org.greenrobot.greendao.database.Database;
-
 import cn.nuosi.andoroid.testdrawline.greendao.gen.DaoMaster;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.DaoSession;
 

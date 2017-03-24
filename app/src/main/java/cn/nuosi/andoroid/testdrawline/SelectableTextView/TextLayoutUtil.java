@@ -48,6 +48,10 @@ public class TextLayoutUtil {
         return context.getResources().getDisplayMetrics().widthPixels;
     }
 
+    public static int getScreenHeight(Context context) {
+        return context.getResources().getDisplayMetrics().heightPixels;
+    }
+
 
     public static int getHysteresisOffset(TextView textView, int x, int y, int previousOffset) {
 

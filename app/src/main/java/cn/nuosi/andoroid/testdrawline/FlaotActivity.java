@@ -8,13 +8,10 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.greenrobot.greendao.query.CursorQuery;
-import org.greenrobot.greendao.query.Query;
 import org.greenrobot.greendao.query.QueryBuilder;
 
 import cn.nuosi.andoroid.testdrawline.dao.Book;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
-import cn.nuosi.andoroid.testdrawline.greendao.gen.DaoMaster;
 
 /**
  * 浮动的Activity
