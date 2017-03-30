@@ -14,61 +14,21 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.greenrobot.greendao.query.QueryBuilder;
 
-import cn.nuosi.andoroid.testdrawline.SelectableTextView.OnSelectListener;
 import cn.nuosi.andoroid.testdrawline.SelectableTextView.SelectableTextHelper;
 import cn.nuosi.andoroid.testdrawline.dao.Book;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
+import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao.Properties;
+import cn.nuosi.andoroid.testdrawline.info.BookInfo;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView mTextView;
-    /**
-     * 自定义TextView的属性
-     */
+    private TextView mTextView1;
     private TextView mTextView2;
-    private SelectableTextHelper mSelectableTextHelper;
-    private SelectableTextHelper mSelectableTextHelper3;
+    private SelectableTextHelper mSelectableTextHelper1;
+    private SelectableTextHelper mSelectableTextHelper2;
 
-    private ActionMode.Callback mActionModeCallback = new ActionMode.Callback() {
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            // 解析菜单
-            MenuInflater menuInflater = mode.getMenuInflater();
-            menuInflater.inflate(R.menu.selection_action_menu, menu);
-            return true;
-        }
-
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
-
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            //根据item的ID处理点击事件
-            switch (item.getItemId()) {
-                case R.id.Informal22:
-                    Toast.makeText(MainActivity.this, "点击的是22", Toast.LENGTH_SHORT).show();
-                    mode.finish();//收起操作菜单
-                    break;
-                case R.id.Informal33:
-                    Toast.makeText(MainActivity.this, "点击的是33", Toast.LENGTH_SHORT).show();
-                    mode.finish();
-                    break;
-            }
-            return false;//返回true则系统的"复制"、"搜索"之类的item将无效，只有自定义item有响应
-        }
-
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
-
-        }
-    };
-
-    private List<Book>mBookList = new ArrayList<>();
     private BookDao mBookDao;
     private int top;
     private int bottom;
@@ -106,19 +66,38 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         // 初始化数据库读取笔记信息
         initData();
-        mTextView = (TextView) findViewById(R.id.test_view);
-
-        setListener();
-
+        mTextView1 = (TextView) findViewById(R.id.test_tv1);
         mTextView2 = (TextView) findViewById(R.id.test_tv2);
-        mTextView2.setTypeface(Typeface.createFromAsset(getAssets(), "fonts/fzltR.TTF"));
+        DrawLineApplication.mTypeface = Typeface.createFromAsset(getAssets(), "fonts/fzltR.TTF");
+        mTextView1.setTypeface(DrawLineApplication.mTypeface);
+        mTextView2.setTypeface(DrawLineApplication.mTypeface);
         String html = Html.fromHtml(text).toString();
+        mTextView1.setText(Html.fromHtml(text));
         mTextView2.setText(Html.fromHtml(text));
-        mSelectableTextHelper = new SelectableTextHelper.Builder(mTextView2)
+
+        BookInfo bookInfo1 = new BookInfo();
+        bookInfo1.startX = 0;
+        bookInfo1.endX = bookInfo1.startX + html.length();
+        loadBookData(bookInfo1);
+
+        mSelectableTextHelper1 = new SelectableTextHelper.Builder(mTextView1)
                 .setSelectedColor(ContextCompat.getColor(MainActivity.this, R.color.selected_blue))
                 .setCursorHandleSizeInDp(15)
                 .setPopMenu(R.layout.layout_pop_menu)
-                .setBookList(mBookList)
+                .setBookInfo(bookInfo1)
+                .setCursorHandleColor(ContextCompat.getColor(MainActivity.this, R.color.cursor_handle_color))
+                .build();
+
+        BookInfo bookInfo2 = new BookInfo();
+        bookInfo2.startX = html.length();
+        bookInfo2.endX = bookInfo2.startX + html.length();
+        loadBookData(bookInfo2);
+
+        mSelectableTextHelper2 = new SelectableTextHelper.Builder(mTextView2)
+                .setSelectedColor(ContextCompat.getColor(MainActivity.this, R.color.selected_blue))
+                .setCursorHandleSizeInDp(15)
+                .setPopMenu(R.layout.layout_pop_menu)
+                .setBookInfo(bookInfo2)
                 .setCursorHandleColor(ContextCompat.getColor(MainActivity.this, R.color.cursor_handle_color))
                 .build();
         final ScrollView scrollView = (ScrollView) findViewById(R.id.scrollView);
@@ -129,30 +108,34 @@ public class MainActivity extends AppCompatActivity {
                 bottom = scrollView.getBottom();
                 int[] mLocation = new int[2];
                 scrollView.getLocationOnScreen(mLocation);
-                mSelectableTextHelper.setTop(mLocation[1]);
-                mSelectableTextHelper.setBottom(mLocation[1] + (bottom - top));
+                mSelectableTextHelper1.setTop(mLocation[1]);
+                mSelectableTextHelper1.setBottom(mLocation[1] + (bottom - top));
+                mSelectableTextHelper2.setTop(mLocation[1]);
+                mSelectableTextHelper2.setBottom(mLocation[1] + (bottom - top));
                 return true;
             }
         });
-        mSelectableTextHelper.setSelectListener(new OnSelectListener() {
-            @Override
-            public void onTextSelected(CharSequence content) {
-
-            }
-        });
-
     }
 
     private void initData() {
         mBookDao = GreenDaoManager.getInstance().getSession().getBookDao();
-        mBookList = GreenDaoManager.getInstance().getSession()
-                .getBookDao().queryBuilder().build().list();
     }
 
+    private void loadBookData(BookInfo bookInfo) {
+        QueryBuilder qb = mBookDao.queryBuilder();
+        qb.where(Properties.Start.ge(bookInfo.startX), Properties.Start.le(bookInfo.endX));
+        bookInfo.mBookList = qb.build().list();
+        if (bookInfo.mBookList != null) {
+            for (Book book : bookInfo.mBookList) {
+                book.setStart(book.getStart() - bookInfo.startX);
+                book.setEnd(book.getEnd() - bookInfo.startX);
+            }
+        }
+    }
 
     private void setListener() {
 
-        mTextView.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+        mTextView1.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
             @Override
             public boolean onCreateActionMode(ActionMode mode, Menu menu) {
                 // 解析菜单

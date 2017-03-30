@@ -31,11 +31,13 @@ import android.widget.TextView;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import cn.nuosi.andoroid.testdrawline.DrawLineApplication;
 import cn.nuosi.andoroid.testdrawline.FlaotActivity;
 import cn.nuosi.andoroid.testdrawline.GreenDaoManager;
 import cn.nuosi.andoroid.testdrawline.R;
 import cn.nuosi.andoroid.testdrawline.dao.Book;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
+import cn.nuosi.andoroid.testdrawline.info.BookInfo;
 
 /**
  * Created by Elder on 2017/3/9.
@@ -53,6 +55,8 @@ public class SelectableTextHelper {
      * 保存该书所有标记的集合
      */
     private List<Book> mBookList;
+
+    private BookInfo mBookInfo;
     /**
      * 自定义菜单的布局ID
      */
@@ -122,7 +126,8 @@ public class SelectableTextHelper {
         mCursorHandleColor = builder.mCursorHandleColor;
         mCursorHandleSize = TextLayoutUtil.dp2px(mContext, builder.mCursorHandleSizeInDp);
         menuId = builder.menuId;
-        mBookList = builder.mBookList;
+        mBookInfo = builder.mBookInfo;
+        mBookList = mBookInfo.mBookList;
         init();
     }
 
@@ -308,6 +313,7 @@ public class SelectableTextHelper {
         WeakReference<TextPaint> mTextPaint = new WeakReference<>(paint);
         mTextPaint.get().setTextSize(mTextView.getTextSize());
         mTextPaint.get().setColor(color);
+        mTextPaint.get().setTypeface(DrawLineApplication.mTypeface);
         return mTextPaint.get();
     }
 
@@ -420,6 +426,43 @@ public class SelectableTextHelper {
     }
 
     /**
+     * 实现画线的方法
+     */
+    private void showUnderLine2(final TextPaint paint) {
+        // 将划线颜色信息保存到SelectionInfo中
+        mSelectionInfo.setColor(paint.getColor());
+        MyClickableSpan mClickableSpan;
+        if (mSpannable != null) {
+            if (clickSpanMap.get(mSelectionInfo.getStart()) != null) {
+                mClickableSpan = clickSpanMap.get(mSelectionInfo.getStart());
+                mClickableSpan.setTextPaint(paint);
+                // 更新标记的方法
+                updateNote();
+            } else {
+                mClickableSpan = new MyClickableSpan(paint) {
+                    @Override
+                    public void onClick(View widget) {
+                        clickSelectSpan(mTextView.getSelectionStart(), mTextView.getSelectionEnd());
+                    }
+                };
+                // 将选中状态的信息保存到MyClickableSpan中
+                mClickableSpan.setInfo(mSelectionInfo);
+                // 添加到ClickSpan集合中
+                clickSpanMap.append(mSelectionInfo.getStart(), mClickableSpan);
+                // 将标记信息存入到数据库中
+                saveNote(mSelectionInfo);
+            }
+            // 设置点击部分
+            mSpannable.setSpan(mClickableSpan,
+                    mSelectionInfo.getStart(), mSelectionInfo.getEnd(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            mTextView.setMovementMethod(LinkMovementMethod.getInstance());
+            // Refresh
+            mTextView.setText(mSpannable);
+        }
+    }
+
+    /**
      * 更新标记信息的方法
      */
     private void updateNote() {
@@ -431,9 +474,14 @@ public class SelectableTextHelper {
             mBookList.remove(mDelBook);
             // 将更新后的实体类对象存入集合中
             mDelBook.setColor(mSelectionInfo.getColor());
+            mDelBook.setEnd(mSelectionInfo.getEnd());
             mBookList.add(mDelBook);
+            //拷贝一份标注信息，存入数据库，这样避免影响当前缓存中的标注信息
+            Book newBook = mDelBook.copy();
+            newBook.setStart(newBook.getStart() + mBookInfo.startX);
+            newBook.setEnd(newBook.getEnd() + mBookInfo.startX);
             // 更新数据库中的信息
-            dao.update(mDelBook);
+            dao.update(newBook);
         }
     }
 
@@ -461,8 +509,8 @@ public class SelectableTextHelper {
         BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
         Book book = new Book();
         book.setColor(info.getColor());
-        book.setStart(info.getStart());
-        book.setEnd(info.getEnd());
+        book.setStart(info.getStart() + mBookInfo.startX);
+        book.setEnd(info.getEnd() + mBookInfo.startX);
         book.setContent(info.getSelectionContent());
         dao.insert(book);
         // 存放在内存的集合中
@@ -478,6 +526,7 @@ public class SelectableTextHelper {
         Book mDelBook = getBook(index);
         if (mDelBook != null) {
             mBookList.remove(mDelBook);
+            mDelBook.setStart(mDelBook.getStart() + mBookInfo.startX);
             dao.delete(mDelBook);
         }
     }
@@ -576,7 +625,7 @@ public class SelectableTextHelper {
         private int mSelectedColor = 0xFFAFE1F4;
         private float mCursorHandleSizeInDp = 24;
         private int menuId;
-        private List<Book> mBookList;
+        private BookInfo mBookInfo;
 
         public Builder(TextView textView) {
             mTextView = textView;
@@ -602,8 +651,8 @@ public class SelectableTextHelper {
             return this;
         }
 
-        public Builder setBookList(List<Book> mList) {
-            mBookList = mList;
+        public Builder setBookInfo(BookInfo bookInfo) {
+            mBookInfo = bookInfo;
             return this;
         }
 

@@ -21,27 +21,27 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/test_view"
-                android:layout_width="wrap_content"
+                android:id="@+id/test_tv1"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/content"
-                android:textIsSelectable="true"
-                android:textSize="50px" />
+                android:lineSpacingExtra="3dp"
+                android:text="@string/long_text"
+                android:textSize="16sp" />
 
-            <EditText
-                android:id="@+id/test_ev"
-                android:layout_width="60dp"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/test_view" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="30dp"
+                android:layout_marginTop="30dp"
+                android:background="@color/red" />
 
             <TextView
                 android:id="@+id/test_tv2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/test_ev"
                 android:lineSpacingExtra="3dp"
                 android:text="@string/long_text"
-                android:textSize="50px" />
+                android:textSize="16sp" />
         </LinearLayout>
     </ScrollView>
 </RelativeLayout>

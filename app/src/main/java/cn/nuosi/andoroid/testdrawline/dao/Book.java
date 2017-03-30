@@ -28,14 +28,14 @@ public class Book implements Parcelable {
 
     private String content;
     private String note;
-    
+
     public Book() {
     }
 
 
     @Generated(hash = 647292832)
     public Book(Long id, String name, int start, int end, int color, String content,
-            String note) {
+                String note) {
         this.id = id;
         this.name = name;
         this.start = start;
@@ -148,5 +148,17 @@ public class Book implements Parcelable {
                 ", content='" + content + '\'' +
                 ", note='" + note + '\'' +
                 '}';
+    }
+
+    public Book copy() {
+        Book newBook = new Book();
+        newBook.setId(id);
+        newBook.setName(name);
+        newBook.setStart(start);
+        newBook.setEnd(end);
+        newBook.setColor(color);
+        newBook.setContent(content);
+        newBook.setNote(note);
+        return newBook;
     }
 }
