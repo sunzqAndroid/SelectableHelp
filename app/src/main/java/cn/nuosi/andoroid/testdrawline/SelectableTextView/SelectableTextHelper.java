@@ -17,6 +17,7 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.style.BackgroundColorSpan;
 import android.view.Gravity;
@@ -29,6 +30,7 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.nuosi.andoroid.testdrawline.DrawLineApplication;
@@ -391,7 +393,7 @@ public class SelectableTextHelper {
     /**
      * 实现画线的方法
      */
-    private void showUnderLine(final TextPaint paint) {
+    private void showUnderLine2(final TextPaint paint) {
         // 将划线颜色信息保存到SelectionInfo中
         mSelectionInfo.setColor(paint.getColor());
         MyClickableSpan mClickableSpan;
@@ -428,13 +430,38 @@ public class SelectableTextHelper {
     /**
      * 实现画线的方法
      */
-    private void showUnderLine2(final TextPaint paint) {
+    private void showUnderLine(final TextPaint paint) {
         // 将划线颜色信息保存到SelectionInfo中
         mSelectionInfo.setColor(paint.getColor());
         MyClickableSpan mClickableSpan;
         if (mSpannable != null) {
-            if (clickSpanMap.get(mSelectionInfo.getStart()) != null) {
-                mClickableSpan = clickSpanMap.get(mSelectionInfo.getStart());
+            List<Book> delList = new ArrayList<>();
+            for (Book temp : mBookList) {
+                if (mSelectionInfo.getStart() >= temp.getStart() && mSelectionInfo.getStart() < temp.getEnd()) {
+                    mSelectionInfo.setStart(temp.getStart());
+                    mSelectionInfo.setNoteContent((TextUtils.isEmpty(mSelectionInfo.getNoteContent()) ? "" : mSelectionInfo.getNoteContent() + "\n") + temp.getNote());
+                    if (mSelectionInfo.getEnd() <= temp.getEnd()) {
+                        mSelectionInfo.setEnd(temp.getEnd());
+                    }
+                    delList.add(temp);
+                } else if (mSelectionInfo.getStart() <= temp.getStart() && mSelectionInfo.getEnd() >= temp.getStart()) {
+                    mSelectionInfo.setNoteContent((TextUtils.isEmpty(mSelectionInfo.getNoteContent()) ? "" : mSelectionInfo.getNoteContent() + "\n") + temp.getNote());
+                    if (mSelectionInfo.getEnd() <= temp.getEnd()) {
+                        mSelectionInfo.setEnd(temp.getEnd());
+                    }
+                    delList.add(temp);
+                }
+            }
+            for (Book temp : delList) {
+                delUnderline(temp);
+                if (temp.getStart() == mSelectionInfo.getStart()) {
+                    delList.remove(temp);
+                } else {
+                    delNote(temp);
+                }
+            }
+            if (clickSpanMap.get(this.mSelectionInfo.getStart()) != null) {
+                mClickableSpan = clickSpanMap.get(this.mSelectionInfo.getStart());
                 mClickableSpan.setTextPaint(paint);
                 // 更新标记的方法
                 updateNote();
@@ -446,15 +473,15 @@ public class SelectableTextHelper {
                     }
                 };
                 // 将选中状态的信息保存到MyClickableSpan中
-                mClickableSpan.setInfo(mSelectionInfo);
+                mClickableSpan.setInfo(this.mSelectionInfo);
                 // 添加到ClickSpan集合中
-                clickSpanMap.append(mSelectionInfo.getStart(), mClickableSpan);
+                clickSpanMap.append(this.mSelectionInfo.getStart(), mClickableSpan);
                 // 将标记信息存入到数据库中
-                saveNote(mSelectionInfo);
+                saveNote(this.mSelectionInfo);
             }
             // 设置点击部分
             mSpannable.setSpan(mClickableSpan,
-                    mSelectionInfo.getStart(), mSelectionInfo.getEnd(),
+                    this.mSelectionInfo.getStart(), this.mSelectionInfo.getEnd(),
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             mTextView.setMovementMethod(LinkMovementMethod.getInstance());
             // Refresh
@@ -531,6 +558,18 @@ public class SelectableTextHelper {
         }
     }
 
+    /**
+     * 删除数据库中数据的方法
+     */
+    private void delNote(Book mDelBook) {
+        if (mDelBook != null) {
+            BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
+            mBookList.remove(mDelBook);
+            mDelBook.setStart(mDelBook.getStart() + mBookInfo.startX);
+            dao.delete(mDelBook);
+        }
+    }
+
 
     /**
      * 点击画线区域时调用的方法
@@ -573,6 +612,16 @@ public class SelectableTextHelper {
         mTextView.setText(mSpannable);
         // 从数据库中删除数据
         delNote();
+    }
+
+    /**
+     * 删除下划线的方法
+     */
+    private void delUnderline(Book book) {
+        MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
+        mSpannable.removeSpan(mClickableSpan);
+        clickSpanMap.delete(book.getStart());
+        mTextView.setText(mSpannable);
     }
 
     /**

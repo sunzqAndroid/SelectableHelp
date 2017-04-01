@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         loadBookData(bookInfo1);
 
         mSelectableTextHelper1 = new SelectableTextHelper.Builder(mTextView1)
-                .setSelectedColor(ContextCompat.getColor(MainActivity.this, R.color.selected_blue))
+                .setSelectedColor(ContextCompat.getColor(MainActivity.this, R.color.selected_red))
                 .setCursorHandleSizeInDp(15)
                 .setPopMenu(R.layout.layout_pop_menu)
                 .setBookInfo(bookInfo1)
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         loadBookData(bookInfo2);
 
         mSelectableTextHelper2 = new SelectableTextHelper.Builder(mTextView2)
-                .setSelectedColor(ContextCompat.getColor(MainActivity.this, R.color.selected_blue))
+                .setSelectedColor(ContextCompat.getColor(MainActivity.this, R.color.selected_red))
                 .setCursorHandleSizeInDp(15)
                 .setPopMenu(R.layout.layout_pop_menu)
                 .setBookInfo(bookInfo2)
