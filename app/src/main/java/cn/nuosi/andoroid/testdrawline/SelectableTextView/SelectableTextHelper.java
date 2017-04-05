@@ -492,6 +492,19 @@ public class SelectableTextHelper {
     }
 
     /**
+     * 被销毁是重新保存全部标注,因为GreenDao数据库框架读取出来的集合，修改集合对象后就相当于直接修改了数据库内容
+     */
+    private void updateAllBook() {
+        BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
+        for (Book book : mBookList) {
+            book.setStart(book.getStart() + mBookInfo.startX);
+            book.setEnd(book.getEnd() + mBookInfo.startX);
+            // 更新数据库中的信息
+            dao.update(book);
+        }
+    }
+
+    /**
      * 给定首字符的索引值返回指定的标注对象
      *
      * @param index:给定查找时的首字索引值
@@ -518,9 +531,12 @@ public class SelectableTextHelper {
         book.setStart(info.getStart() + mBookInfo.startX);
         book.setEnd(info.getEnd() + mBookInfo.startX);
         book.setContent(info.getSelectionContent());
-        dao.insert(book);
+        Book newBook = book.copy();
+        newBook.setId(dao.insert(book));
+        newBook.setStart(newBook.getStart() - mBookInfo.startX);
+        newBook.setEnd(newBook.getEnd() - mBookInfo.startX);
         // 存放在内存的集合中
-        mBookList.add(book);
+        mBookList.add(newBook);
     }
 
     /**
@@ -531,18 +547,6 @@ public class SelectableTextHelper {
         int index = mSelectionInfo.getStart();
         Book mDelBook = getBook(index);
         if (mDelBook != null) {
-            mBookList.remove(mDelBook);
-            mDelBook.setStart(mDelBook.getStart() + mBookInfo.startX);
-            dao.delete(mDelBook);
-        }
-    }
-
-    /**
-     * 删除数据库中数据的方法
-     */
-    private void delNote(Book mDelBook) {
-        if (mDelBook != null) {
-            BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
             mBookList.remove(mDelBook);
             mDelBook.setStart(mDelBook.getStart() + mBookInfo.startX);
             dao.delete(mDelBook);
@@ -657,6 +661,7 @@ public class SelectableTextHelper {
             bgSpanMap.clear();
             bgSpanMap = null;
         }
+        updateAllBook();
     }
 
     /**
