@@ -75,6 +75,10 @@ public class SelectableTextHelper {
      * 比HashMap<Integer,Object>更高效
      */
     private SparseArrayCompat<MyClickableSpan> clickSpanMap;
+    /**
+     * 比HashMap<Integer,Object>更高效
+     */
+    private SparseArrayCompat<BackgroundColorSpan> bgSpanMap;
 
     private int mTouchX;
     private int mTouchY;
@@ -140,6 +144,7 @@ public class SelectableTextHelper {
         mTextView.setText(mTextView.getText(), TextView.BufferType.SPANNABLE);
         // 初始化保存标记对象的集合
         clickSpanMap = new SparseArrayCompat<>();
+        bgSpanMap = new SparseArrayCompat<>();
         // 将数据库中的标记全部载入到当前TextView中
         if (mBookList != null) {
             if (mTextView.getText() instanceof Spannable) {
@@ -160,6 +165,9 @@ public class SelectableTextHelper {
                     };
                     clickSpanMap.append(bean.getStart(), clickSpan);
                     mSpannable.setSpan(clickSpan, bean.getStart(), bean.getEnd(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    BackgroundColorSpan bgSpan = new BackgroundColorSpan(bean.getColor());
+                    bgSpanMap.append(bean.getStart(), bgSpan);
+                    mSpannable.setSpan(bgSpan, bean.getStart(), bean.getEnd(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     mTextView.setText(mSpannable);
                 } else {
                     //TODO 删除标注
@@ -314,7 +322,7 @@ public class SelectableTextHelper {
     private TextPaint getPaint(TextPaint paint, int color) {
         WeakReference<TextPaint> mTextPaint = new WeakReference<>(paint);
         mTextPaint.get().setTextSize(mTextView.getTextSize());
-        mTextPaint.get().setColor(color);
+        mTextPaint.get().setColor(mTextView.getContext().getResources().getColor(R.color.text_dark));
         mTextPaint.get().setTypeface(DrawLineApplication.mTypeface);
         return mTextPaint.get();
     }
@@ -393,46 +401,9 @@ public class SelectableTextHelper {
     /**
      * 实现画线的方法
      */
-    private void showUnderLine2(final TextPaint paint) {
+    private void showUnderLine(final TextPaint paint, int bgColor) {
         // 将划线颜色信息保存到SelectionInfo中
-        mSelectionInfo.setColor(paint.getColor());
-        MyClickableSpan mClickableSpan;
-        if (mSpannable != null) {
-            if (clickSpanMap.get(mSelectionInfo.getStart()) != null) {
-                mClickableSpan = clickSpanMap.get(mSelectionInfo.getStart());
-                mClickableSpan.setTextPaint(paint);
-                // 更新标记的方法
-                updateNote();
-            } else {
-                mClickableSpan = new MyClickableSpan(paint) {
-                    @Override
-                    public void onClick(View widget) {
-                        clickSelectSpan(mTextView.getSelectionStart(), mTextView.getSelectionEnd());
-                    }
-                };
-                // 将选中状态的信息保存到MyClickableSpan中
-                mClickableSpan.setInfo(mSelectionInfo);
-                // 添加到ClickSpan集合中
-                clickSpanMap.append(mSelectionInfo.getStart(), mClickableSpan);
-                // 将标记信息存入到数据库中
-                saveNote(mSelectionInfo);
-            }
-            // 设置点击部分
-            mSpannable.setSpan(mClickableSpan,
-                    mSelectionInfo.getStart(), mSelectionInfo.getEnd(),
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            mTextView.setMovementMethod(LinkMovementMethod.getInstance());
-            // Refresh
-            mTextView.setText(mSpannable);
-        }
-    }
-
-    /**
-     * 实现画线的方法
-     */
-    private void showUnderLine(final TextPaint paint) {
-        // 将划线颜色信息保存到SelectionInfo中
-        mSelectionInfo.setColor(paint.getColor());
+        mSelectionInfo.setColor(bgColor);
         MyClickableSpan mClickableSpan;
         if (mSpannable != null) {
             List<Book> delList = new ArrayList<>();
@@ -453,16 +424,16 @@ public class SelectableTextHelper {
                 }
             }
             for (Book temp : delList) {
-                delUnderline(temp);
-                if (temp.getStart() == mSelectionInfo.getStart()) {
-                    delList.remove(temp);
-                } else {
-                    delNote(temp);
+                if (temp.getStart() != mSelectionInfo.getStart()) {
+                    delUnderline(temp);
                 }
             }
             if (clickSpanMap.get(this.mSelectionInfo.getStart()) != null) {
                 mClickableSpan = clickSpanMap.get(this.mSelectionInfo.getStart());
                 mClickableSpan.setTextPaint(paint);
+                BackgroundColorSpan mbgSpan = bgSpanMap.get(mSelectionInfo.getStart());
+                mSpannable.removeSpan(mbgSpan);
+                bgSpanMap.delete(mSelectionInfo.getStart());
                 // 更新标记的方法
                 updateNote();
             } else {
@@ -482,6 +453,14 @@ public class SelectableTextHelper {
             // 设置点击部分
             mSpannable.setSpan(mClickableSpan,
                     this.mSelectionInfo.getStart(), this.mSelectionInfo.getEnd(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            //设置背景色
+            BackgroundColorSpan bgSpan = new BackgroundColorSpan(mSelectionInfo.getColor());
+            // 添加到bgSpanMap集合中
+            bgSpanMap.append(mSelectionInfo.getStart(), bgSpan);
+            //设置点击部分的背景色
+            mSpannable.setSpan(bgSpan,
+                    mSelectionInfo.getStart(), mSelectionInfo.getEnd(),
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             mTextView.setMovementMethod(LinkMovementMethod.getInstance());
             // Refresh
@@ -605,10 +584,13 @@ public class SelectableTextHelper {
      */
     private void delUnderline() {
         MyClickableSpan mClickableSpan = clickSpanMap.get(mTextView.getSelectionStart());
+        BackgroundColorSpan mbgSpan = bgSpanMap.get(mTextView.getSelectionStart());
         hideSelectView();
         resetSelectionInfo();
         mSpannable.removeSpan(mClickableSpan);
+        mSpannable.removeSpan(mbgSpan);
         clickSpanMap.delete(mTextView.getSelectionStart());
+        bgSpanMap.delete(mTextView.getSelectionStart());
         mTextView.setText(mSpannable);
         // 从数据库中删除数据
         delNote();
@@ -619,9 +601,17 @@ public class SelectableTextHelper {
      */
     private void delUnderline(Book book) {
         MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
+        BackgroundColorSpan mbgSpan = bgSpanMap.get(book.getStart());
         mSpannable.removeSpan(mClickableSpan);
+        mSpannable.removeSpan(mbgSpan);
         clickSpanMap.delete(book.getStart());
+        bgSpanMap.delete(book.getStart());
         mTextView.setText(mSpannable);
+        // 从数据库中删除数据
+        BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
+        mBookList.remove(book);
+        book.setStart(book.getStart() + mBookInfo.startX);
+        dao.delete(book);
     }
 
     /**
@@ -662,6 +652,10 @@ public class SelectableTextHelper {
         if (clickSpanMap != null) {
             clickSpanMap.clear();
             clickSpanMap = null;
+        }
+        if (bgSpanMap != null) {
+            bgSpanMap.clear();
+            bgSpanMap = null;
         }
     }
 
@@ -775,7 +769,7 @@ public class SelectableTextHelper {
                     TextPaint mTextPaint = getPaint(new TextPaint(
                                     new Paint(Paint.ANTI_ALIAS_FLAG)),
                             book.getColor() == 0 ? Color.RED : book.getColor());
-                    showUnderLine(mTextPaint);
+                    showUnderLine(mTextPaint, book.getColor() == 0 ? Color.RED : book.getColor());
                     // 跳转完成记笔记的功能
                     Intent intent = new Intent(mContext, FlaotActivity.class);
                     intent.putExtra("book", book);
@@ -790,7 +784,7 @@ public class SelectableTextHelper {
                     resetSelectionInfo();
                     TextPaint mTextPaint = getPaint(new TextPaint(
                             new Paint(Paint.ANTI_ALIAS_FLAG)), Color.RED);
-                    showUnderLine(mTextPaint);
+                    showUnderLine(mTextPaint, Color.RED);
                 }
             });
             // 设置蓝色下划线
@@ -801,7 +795,7 @@ public class SelectableTextHelper {
                     resetSelectionInfo();
                     TextPaint mTextPaint = getPaint(new TextPaint(
                             new Paint(Paint.ANTI_ALIAS_FLAG)), Color.BLUE);
-                    showUnderLine(mTextPaint);
+                    showUnderLine(mTextPaint, Color.BLUE);
                 }
             });
             // 删除下划线逻辑部分

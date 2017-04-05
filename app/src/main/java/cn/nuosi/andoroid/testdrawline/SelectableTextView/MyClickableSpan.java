@@ -29,7 +29,7 @@ public abstract class MyClickableSpan extends ClickableSpan {
         ds.set(mPaint);
         ds.setColor(mColor);
         ds.setTextSize(mTextSize);
-        ds.setUnderlineText(true);
+        ds.setUnderlineText(false);
     }
 
     /**
