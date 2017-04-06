@@ -251,6 +251,23 @@ public class SelectableTextHelper {
         mOperateWindow = new OperateWindow(mContext, menuId);
     }
 
+    public void updateBookInfo(BookInfo bookInfo) {
+        for (Book book : mBookList) {
+            MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
+            BackgroundColorSpan mbgSpan = bgSpanMap.get(book.getStart());
+            mSpannable.removeSpan(mClickableSpan);
+            mSpannable.removeSpan(mbgSpan);
+            clickSpanMap.delete(mTextView.getSelectionStart());
+            bgSpanMap.delete(mTextView.getSelectionStart());
+            mTextView.setText(mSpannable);
+        }
+        mBookList.clear();
+        destroy();
+        mBookInfo = bookInfo;
+        mBookList = mBookInfo.mBookList;
+        init();
+    }
+
     /**
      * 延迟显示的方法
      *
@@ -410,13 +427,17 @@ public class SelectableTextHelper {
             for (Book temp : mBookList) {
                 if (mSelectionInfo.getStart() >= temp.getStart() && mSelectionInfo.getStart() < temp.getEnd()) {
                     mSelectionInfo.setStart(temp.getStart());
-                    mSelectionInfo.setNoteContent((TextUtils.isEmpty(mSelectionInfo.getNoteContent()) ? "" : mSelectionInfo.getNoteContent() + "\n") + temp.getNote());
+                    if (!TextUtils.isEmpty(temp.getNote())) {
+                        mSelectionInfo.setNoteContent((TextUtils.isEmpty(mSelectionInfo.getNoteContent()) ? "" : mSelectionInfo.getNoteContent() + "\n") + temp.getNote());
+                    }
                     if (mSelectionInfo.getEnd() <= temp.getEnd()) {
                         mSelectionInfo.setEnd(temp.getEnd());
                     }
                     delList.add(temp);
                 } else if (mSelectionInfo.getStart() <= temp.getStart() && mSelectionInfo.getEnd() >= temp.getStart()) {
-                    mSelectionInfo.setNoteContent((TextUtils.isEmpty(mSelectionInfo.getNoteContent()) ? "" : mSelectionInfo.getNoteContent() + "\n") + temp.getNote());
+                    if (!TextUtils.isEmpty(temp.getNote())) {
+                        mSelectionInfo.setNoteContent((TextUtils.isEmpty(mSelectionInfo.getNoteContent()) ? "" : mSelectionInfo.getNoteContent() + "\n") + temp.getNote());
+                    }
                     if (mSelectionInfo.getEnd() <= temp.getEnd()) {
                         mSelectionInfo.setEnd(temp.getEnd());
                     }
@@ -427,6 +448,13 @@ public class SelectableTextHelper {
                 if (temp.getStart() != mSelectionInfo.getStart()) {
                     delUnderline(temp);
                 }
+            }
+            if (delList.size() > 0) {
+                // 重新截取选中状态的文本
+                mSelectionInfo.setSelectionContent(
+                        mSpannable.subSequence(
+                                mSelectionInfo.getStart(),
+                                mSelectionInfo.getEnd()).toString());
             }
             if (clickSpanMap.get(this.mSelectionInfo.getStart()) != null) {
                 mClickableSpan = clickSpanMap.get(this.mSelectionInfo.getStart());
@@ -473,7 +501,7 @@ public class SelectableTextHelper {
      */
     private void updateNote() {
         BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
-        int index = mTextView.getSelectionStart();
+        int index = mSelectionInfo.getStart();
         Book mDelBook = getBook(index);
         if (mDelBook != null) {
             // 删除原来颜色的标注对象
@@ -481,6 +509,11 @@ public class SelectableTextHelper {
             // 将更新后的实体类对象存入集合中
             mDelBook.setColor(mSelectionInfo.getColor());
             mDelBook.setEnd(mSelectionInfo.getEnd());
+            if (!TextUtils.isEmpty(mSelectionInfo.getNoteContent())) {
+                mDelBook.setNote(mSelectionInfo.getNoteContent());
+                mSelectionInfo.setNoteContent("");
+            }
+            mDelBook.setContent(mSelectionInfo.getSelectionContent());
             mBookList.add(mDelBook);
             //拷贝一份标注信息，存入数据库，这样避免影响当前缓存中的标注信息
             Book newBook = mDelBook.copy();
@@ -488,19 +521,6 @@ public class SelectableTextHelper {
             newBook.setEnd(newBook.getEnd() + mBookInfo.startX);
             // 更新数据库中的信息
             dao.update(newBook);
-        }
-    }
-
-    /**
-     * 被销毁是重新保存全部标注,因为GreenDao数据库框架读取出来的集合，修改集合对象后就相当于直接修改了数据库内容
-     */
-    private void updateAllBook() {
-        BookDao dao = GreenDaoManager.getInstance().getSession().getBookDao();
-        for (Book book : mBookList) {
-            book.setStart(book.getStart() + mBookInfo.startX);
-            book.setEnd(book.getEnd() + mBookInfo.startX);
-            // 更新数据库中的信息
-            dao.update(book);
         }
     }
 
@@ -530,6 +550,10 @@ public class SelectableTextHelper {
         book.setColor(info.getColor());
         book.setStart(info.getStart() + mBookInfo.startX);
         book.setEnd(info.getEnd() + mBookInfo.startX);
+        if (!TextUtils.isEmpty(mSelectionInfo.getNoteContent())) {
+            book.setNote(mSelectionInfo.getNoteContent());
+            mSelectionInfo.setNoteContent("");
+        }
         book.setContent(info.getSelectionContent());
         Book newBook = book.copy();
         newBook.setId(dao.insert(book));
@@ -661,7 +685,6 @@ public class SelectableTextHelper {
             bgSpanMap.clear();
             bgSpanMap = null;
         }
-        updateAllBook();
     }
 
     /**
@@ -767,17 +790,23 @@ public class SelectableTextHelper {
                     hideSelectView();
                     resetSelectionInfo();
                     Book book = getBook(mSelectionInfo.getStart());
-                    if (book == null) {
-                        saveNote(mSelectionInfo);
-                        book = getBook(mSelectionInfo.getStart());
+                    int color = Color.RED;
+                    if (book != null) {
+                        color = book.getColor();
                     }
                     TextPaint mTextPaint = getPaint(new TextPaint(
-                                    new Paint(Paint.ANTI_ALIAS_FLAG)),
-                            book.getColor() == 0 ? Color.RED : book.getColor());
-                    showUnderLine(mTextPaint, book.getColor() == 0 ? Color.RED : book.getColor());
+                            new Paint(Paint.ANTI_ALIAS_FLAG)), color);
+                    showUnderLine(mTextPaint, color);
+                    if (book == null) {
+                        book = getBook(mSelectionInfo.getStart());
+                    }
+                    Book newBook = book.copy();
+                    newBook.setId(book.getId());
+                    newBook.setStart(newBook.getStart() + mBookInfo.startX);
+                    newBook.setEnd(newBook.getEnd() + mBookInfo.startX);
                     // 跳转完成记笔记的功能
                     Intent intent = new Intent(mContext, FlaotActivity.class);
-                    intent.putExtra("book", book);
+                    intent.putExtra("book", newBook);
                     mContext.startActivity(intent);
                 }
             });

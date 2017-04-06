@@ -48,7 +48,7 @@ public class FlaotActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String note = mEditText.getText().toString();
                 mBookDao = GreenDaoManager.getInstance().getSession().getBookDao();
-                if (mBook.getId() == null) {
+                if (mBook.getId() != null) {
                     QueryBuilder<Book> queryBuilder = mBookDao.queryBuilder();
                     Book book = queryBuilder.where(BookDao.Properties.Start.eq(mBook.getStart())).unique();
                     mBook = book;
@@ -58,6 +58,7 @@ public class FlaotActivity extends AppCompatActivity {
                 // 跳转到主界面
                 Intent intent = new Intent(FlaotActivity.this, MainActivity.class);
                 startActivity(intent);
+                FlaotActivity.this.finish();
             }
         });
     }

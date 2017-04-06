@@ -1,5 +1,6 @@
 package cn.nuosi.andoroid.testdrawline.info;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.nuosi.andoroid.testdrawline.dao.Book;
@@ -11,5 +12,5 @@ public class BookInfo {
 
     public int startX;
     public int endX;
-    public List<Book> mBookList;
+    public List<Book> mBookList = new ArrayList<>();
 }

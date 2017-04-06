@@ -35,7 +35,7 @@ public class Book implements Parcelable {
 
     @Generated(hash = 647292832)
     public Book(Long id, String name, int start, int end, int color, String content,
-                String note) {
+            String note) {
         this.id = id;
         this.name = name;
         this.start = start;
@@ -45,7 +45,9 @@ public class Book implements Parcelable {
         this.note = note;
     }
 
+
     protected Book(Parcel in) {
+        id = in.readLong();
         name = in.readString();
         start = in.readInt();
         end = in.readInt();
@@ -56,6 +58,7 @@ public class Book implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeLong(id);
         dest.writeString(name);
         dest.writeInt(start);
         dest.writeInt(end);

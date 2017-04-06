@@ -1,5 +1,6 @@
 package cn.nuosi.andoroid.testdrawline;
 
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -15,6 +16,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.greenrobot.greendao.query.QueryBuilder;
+
+import java.util.List;
 
 import cn.nuosi.andoroid.testdrawline.SelectableTextView.SelectableTextHelper;
 import cn.nuosi.andoroid.testdrawline.dao.Book;
@@ -32,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private BookDao mBookDao;
     private int top;
     private int bottom;
+    private String html;
     private String text = "<p>其支持的标签\n\n有:<br>" +
             "<strong>br</strong>:换行<br>" +
             "<strong>a:</strong>链接<br>" +
@@ -71,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         DrawLineApplication.mTypeface = Typeface.createFromAsset(getAssets(), "fonts/fzltR.TTF");
         mTextView1.setTypeface(DrawLineApplication.mTypeface);
         mTextView2.setTypeface(DrawLineApplication.mTypeface);
-        String html = Html.fromHtml(text).toString();
+        html = Html.fromHtml(text).toString();
         mTextView1.setText(Html.fromHtml(text));
         mTextView2.setText(Html.fromHtml(text));
 
@@ -117,6 +121,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        BookInfo bookInfo1 = new BookInfo();
+        bookInfo1.startX = 0;
+        bookInfo1.endX = bookInfo1.startX + html.length();
+        loadBookData(bookInfo1);
+        mSelectableTextHelper1.updateBookInfo(bookInfo1);
+
+        BookInfo bookInfo2 = new BookInfo();
+        bookInfo2.startX = html.length();
+        bookInfo2.endX = bookInfo2.startX + html.length();
+        loadBookData(bookInfo2);
+        mSelectableTextHelper2.updateBookInfo(bookInfo2);
+    }
+
     private void initData() {
         mBookDao = GreenDaoManager.getInstance().getSession().getBookDao();
     }
@@ -124,11 +144,14 @@ public class MainActivity extends AppCompatActivity {
     private void loadBookData(BookInfo bookInfo) {
         QueryBuilder qb = mBookDao.queryBuilder();
         qb.where(Properties.Start.ge(bookInfo.startX), Properties.Start.le(bookInfo.endX));
-        bookInfo.mBookList = qb.build().list();
-        if (bookInfo.mBookList != null) {
-            for (Book book : bookInfo.mBookList) {
-                book.setStart(book.getStart() - bookInfo.startX);
-                book.setEnd(book.getEnd() - bookInfo.startX);
+        List<Book> list = qb.build().list();
+        if (list != null) {
+            for (Book book : list) {
+                //重新拷贝标注信息(GreedDao框架读取出来的集合，修改集合对象后就相当于直接修改了数据库内容。如果此时不是copy一份，直接修改读取出来的对象，相当于直接修改了数据库内容）
+                Book newBook = book.copy();
+                newBook.setStart(newBook.getStart() - bookInfo.startX);
+                newBook.setEnd(newBook.getEnd() - bookInfo.startX);
+                bookInfo.mBookList.add(newBook);
             }
         }
     }
