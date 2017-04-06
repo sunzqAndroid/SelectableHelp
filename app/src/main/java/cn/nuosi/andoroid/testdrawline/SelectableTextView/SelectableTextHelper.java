@@ -251,6 +251,11 @@ public class SelectableTextHelper {
         mOperateWindow = new OperateWindow(mContext, menuId);
     }
 
+    /**
+     * 标注信息更新后，重新加载并绘制标注
+     *
+     * @param bookInfo
+     */
     public void updateBookInfo(BookInfo bookInfo) {
         for (Book book : mBookList) {
             MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
@@ -266,6 +271,19 @@ public class SelectableTextHelper {
         mBookInfo = bookInfo;
         mBookList = mBookInfo.mBookList;
         init();
+    }
+
+    /**
+     * 改变字体大小后，刷新标注内容的字体大小
+     */
+    public void changeTextSize() {
+        for (Book book : mBookList) {
+            MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
+            TextPaint textPaint = getPaint(new TextPaint(
+                    new Paint(Paint.ANTI_ALIAS_FLAG)), book.getColor());
+            mClickableSpan.setTextPaint(textPaint);
+        }
+        mTextView.setText(mSpannable);
     }
 
     /**

@@ -1,15 +1,16 @@
 package cn.nuosi.andoroid.testdrawline;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -20,15 +21,19 @@ import org.greenrobot.greendao.query.QueryBuilder;
 import java.util.List;
 
 import cn.nuosi.andoroid.testdrawline.SelectableTextView.SelectableTextHelper;
+import cn.nuosi.andoroid.testdrawline.SelectableTextView.TextLayoutUtil;
 import cn.nuosi.andoroid.testdrawline.dao.Book;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao.Properties;
 import cn.nuosi.andoroid.testdrawline.info.BookInfo;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity implements View.OnClickListener {
 
     private TextView mTextView1;
     private TextView mTextView2;
+    private TextView tv_font_small;
+    private TextView tv_font_middle;
+    private TextView tv_font_large;
     private SelectableTextHelper mSelectableTextHelper1;
     private SelectableTextHelper mSelectableTextHelper2;
 
@@ -68,17 +73,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initView();
+        addListener();
         // 初始化数据库读取笔记信息
         initData();
-        mTextView1 = (TextView) findViewById(R.id.test_tv1);
-        mTextView2 = (TextView) findViewById(R.id.test_tv2);
-        DrawLineApplication.mTypeface = Typeface.createFromAsset(getAssets(), "fonts/fzltR.TTF");
-        mTextView1.setTypeface(DrawLineApplication.mTypeface);
-        mTextView2.setTypeface(DrawLineApplication.mTypeface);
-        html = Html.fromHtml(text).toString();
-        mTextView1.setText(Html.fromHtml(text));
-        mTextView2.setText(Html.fromHtml(text));
-
         BookInfo bookInfo1 = new BookInfo();
         bookInfo1.startX = 0;
         bookInfo1.endX = bookInfo1.startX + html.length();
@@ -121,6 +119,26 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void initView() {
+        mTextView1 = (TextView) findViewById(R.id.test_tv1);
+        mTextView2 = (TextView) findViewById(R.id.test_tv2);
+        tv_font_small = (TextView) findViewById(R.id.tv_font_small);
+        tv_font_middle = (TextView) findViewById(R.id.tv_font_middle);
+        tv_font_large = (TextView) findViewById(R.id.tv_font_large);
+        DrawLineApplication.mTypeface = Typeface.createFromAsset(getAssets(), "fonts/fzltR.TTF");
+        mTextView1.setTypeface(DrawLineApplication.mTypeface);
+        mTextView2.setTypeface(DrawLineApplication.mTypeface);
+        html = Html.fromHtml(text).toString();
+        mTextView1.setText(Html.fromHtml(text));
+        mTextView2.setText(Html.fromHtml(text));
+    }
+
+    private void addListener() {
+        tv_font_small.setOnClickListener(this);
+        tv_font_middle.setOnClickListener(this);
+        tv_font_large.setOnClickListener(this);
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -157,7 +175,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setListener() {
-
         mTextView1.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
             @Override
             public boolean onCreateActionMode(ActionMode mode, Menu menu) {
@@ -197,5 +214,25 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.tv_font_small:
+                mTextView1.setTextSize(TextLayoutUtil.dp2px(this, 6));
+                mTextView2.setTextSize(TextLayoutUtil.dp2px(this, 6));
+                break;
+            case R.id.tv_font_middle:
+                mTextView1.setTextSize(TextLayoutUtil.dp2px(this, 8));
+                mTextView2.setTextSize(TextLayoutUtil.dp2px(this, 8));
+                break;
+            case R.id.tv_font_large:
+                mTextView1.setTextSize(TextLayoutUtil.dp2px(this, 10));
+                mTextView2.setTextSize(TextLayoutUtil.dp2px(this, 10));
+                break;
+        }
+        mSelectableTextHelper1.changeTextSize();
+        mSelectableTextHelper2.changeTextSize();
     }
 }
