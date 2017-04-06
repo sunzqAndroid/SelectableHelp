@@ -1,9 +1,9 @@
 package cn.nuosi.andoroid.testdrawline;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -17,7 +17,7 @@ import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
  * 浮动的Activity
  */
 
-public class FlaotActivity extends AppCompatActivity {
+public class FlaotActivity extends Activity {
 
     private TextView mTextView;
     private EditText mEditText;
