@@ -19,7 +19,6 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
-import android.text.style.BackgroundColorSpan;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -71,7 +70,7 @@ public class SelectableTextHelper {
     /**
      * 改变文本背景色
      */
-    private BackgroundColorSpan mBgSpan;
+    private MyBackgroundSpan mBgSpan;
     /**
      * 比HashMap<Integer,Object>更高效
      */
@@ -79,7 +78,7 @@ public class SelectableTextHelper {
     /**
      * 比HashMap<Integer,Object>更高效
      */
-    private SparseArrayCompat<BackgroundColorSpan> bgSpanMap;
+    private SparseArrayCompat<MyBackgroundSpan> bgSpanMap;
 
     private int mTouchX;
     private int mTouchY;
@@ -166,9 +165,9 @@ public class SelectableTextHelper {
                     };
                     clickSpanMap.append(bean.getStart(), clickSpan);
                     mSpannable.setSpan(clickSpan, bean.getStart(), bean.getEnd(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    BackgroundColorSpan bgSpan = new BackgroundColorSpan(bean.getColor());
+                    MyBackgroundSpan bgSpan = new MyBackgroundSpan(mTextView, bean.getColor(), bean.getStart(), bean.getEnd());
                     bgSpanMap.append(bean.getStart(), bgSpan);
-                    mSpannable.setSpan(bgSpan, bean.getStart(), bean.getEnd(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    mSpannable.setSpan(bgSpan, 0, mSpannable.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     mTextView.setText(mSpannable);
                 } else {
                     //TODO 删除标注
@@ -259,7 +258,7 @@ public class SelectableTextHelper {
     public void updateBookInfo(BookInfo bookInfo) {
         for (Book book : mBookList) {
             MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
-            BackgroundColorSpan mbgSpan = bgSpanMap.get(book.getStart());
+            MyBackgroundSpan mbgSpan = bgSpanMap.get(book.getStart());
             mSpannable.removeSpan(mClickableSpan);
             mSpannable.removeSpan(mbgSpan);
             clickSpanMap.delete(mTextView.getSelectionStart());
@@ -424,7 +423,7 @@ public class SelectableTextHelper {
 
         if (mSpannable != null) {
             if (mBgSpan == null) {
-                mBgSpan = new BackgroundColorSpan(mSelectedColor);
+                mBgSpan = new MyBackgroundSpan(mTextView, mSelectedColor, mSelectionInfo.getStart(), mSelectionInfo.getEnd());
             }
             // 截取选中状态的文本
             mSelectionInfo.setSelectionContent(
@@ -432,7 +431,7 @@ public class SelectableTextHelper {
                             mSelectionInfo.getStart(),
                             mSelectionInfo.getEnd()).toString());
             mSpannable.setSpan(mBgSpan,
-                    mSelectionInfo.getStart(), mSelectionInfo.getEnd(),
+                    0, mSpannable.length(),
                     Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
             // 设置监听选中接口回调时选择到的文字
             if (mSelectListener != null) {
@@ -485,7 +484,7 @@ public class SelectableTextHelper {
             if (clickSpanMap.get(this.mSelectionInfo.getStart()) != null) {
                 mClickableSpan = clickSpanMap.get(this.mSelectionInfo.getStart());
                 mClickableSpan.setTextPaint(paint);
-                BackgroundColorSpan mbgSpan = bgSpanMap.get(mSelectionInfo.getStart());
+                MyBackgroundSpan mbgSpan = bgSpanMap.get(mSelectionInfo.getStart());
                 mSpannable.removeSpan(mbgSpan);
                 bgSpanMap.delete(mSelectionInfo.getStart());
                 // 更新标记的方法
@@ -509,12 +508,12 @@ public class SelectableTextHelper {
                     this.mSelectionInfo.getStart(), this.mSelectionInfo.getEnd(),
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             //设置背景色
-            BackgroundColorSpan bgSpan = new BackgroundColorSpan(mSelectionInfo.getColor());
+            MyBackgroundSpan bgSpan = new MyBackgroundSpan(mTextView, mSelectionInfo.getColor(), mSelectionInfo.getStart(), mSelectionInfo.getEnd());
             // 添加到bgSpanMap集合中
             bgSpanMap.append(mSelectionInfo.getStart(), bgSpan);
             //设置点击部分的背景色
             mSpannable.setSpan(bgSpan,
-                    mSelectionInfo.getStart(), mSelectionInfo.getEnd(),
+                    0, mSpannable.length(),
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             mTextView.setMovementMethod(LinkMovementMethod.getInstance());
             // Refresh
@@ -638,7 +637,7 @@ public class SelectableTextHelper {
      */
     private void delUnderline() {
         MyClickableSpan mClickableSpan = clickSpanMap.get(mTextView.getSelectionStart());
-        BackgroundColorSpan mbgSpan = bgSpanMap.get(mTextView.getSelectionStart());
+        MyBackgroundSpan mbgSpan = bgSpanMap.get(mTextView.getSelectionStart());
         ((MainActivity) mContext).hideSelectView();
         mSpannable.removeSpan(mClickableSpan);
         mSpannable.removeSpan(mbgSpan);
@@ -654,7 +653,7 @@ public class SelectableTextHelper {
      */
     private void delUnderline(Book book) {
         MyClickableSpan mClickableSpan = clickSpanMap.get(book.getStart());
-        BackgroundColorSpan mbgSpan = bgSpanMap.get(book.getStart());
+        MyBackgroundSpan mbgSpan = bgSpanMap.get(book.getStart());
         mSpannable.removeSpan(mClickableSpan);
         mSpannable.removeSpan(mbgSpan);
         clickSpanMap.delete(book.getStart());
@@ -1074,10 +1073,10 @@ public class SelectableTextHelper {
             Layout layout = mTextView.getLayout();
             if (isLeft) {
                 mPopupWindow.update((int) layout.getPrimaryHorizontal(mSelectionInfo.getStart()) - mWidth + getExtraX(),
-                        layout.getLineBottom(layout.getLineForOffset(mSelectionInfo.getStart())) + getExtraY(), -1, -1);
+                        layout.getLineBottom(layout.getLineForOffset(mSelectionInfo.getStart())) + getExtraY() - 3, -1, -1);
             } else {
                 mPopupWindow.update((int) layout.getPrimaryHorizontal(mSelectionInfo.getEnd()) + getExtraX(),
-                        layout.getLineBottom(layout.getLineForOffset(mSelectionInfo.getEnd())) + getExtraY(), -1, -1);
+                        layout.getLineBottom(layout.getLineForOffset(mSelectionInfo.getEnd())) + getExtraY() - 3, -1, -1);
             }
         }
 

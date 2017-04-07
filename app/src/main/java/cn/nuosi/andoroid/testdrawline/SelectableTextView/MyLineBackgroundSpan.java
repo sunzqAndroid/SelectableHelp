@@ -3,7 +3,6 @@ package cn.nuosi.andoroid.testdrawline.SelectableTextView;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Rect;
 import android.text.Layout;
 import android.text.style.LineBackgroundSpan;
 import android.widget.TextView;
@@ -41,8 +40,6 @@ public class MyLineBackgroundSpan implements LineBackgroundSpan {
             Layout layout = mTextView.getLayout();
             int topLine = layout.getLineForOffset(this.start);
             int bottomLine = layout.getLineForOffset(this.end);
-            Rect bound = new Rect();
-            float yAxisBottom = bound.bottom;//字符底部y坐标
             float xAxisLeft = layout.getPrimaryHorizontal(this.start);//字符左边x坐标
             float xAxisRight = layout.getSecondaryHorizontal(this.end);//字符右边x坐标
             for (int i = topLine; i <= bottomLine; i++) {

@@ -78,7 +78,7 @@
                 android:id="@+id/test_tv1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:lineSpacingExtra="3dp"
+                android:lineSpacingExtra="1dp"
                 android:text="@string/long_text"
                 android:textColor="@color/text_dark"
                 android:textSize="20dp" />
@@ -94,7 +94,7 @@
                 android:id="@+id/test_tv2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:lineSpacingExtra="3dp"
+                android:lineSpacingExtra="1dp"
                 android:text="@string/long_text"
                 android:textColor="@color/text_dark"
                 android:textSize="20dp" />
