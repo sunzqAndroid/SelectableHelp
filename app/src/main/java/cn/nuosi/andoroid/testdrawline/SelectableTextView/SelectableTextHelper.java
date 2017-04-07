@@ -36,6 +36,7 @@ import java.util.List;
 import cn.nuosi.andoroid.testdrawline.DrawLineApplication;
 import cn.nuosi.andoroid.testdrawline.FlaotActivity;
 import cn.nuosi.andoroid.testdrawline.GreenDaoManager;
+import cn.nuosi.andoroid.testdrawline.MainActivity;
 import cn.nuosi.andoroid.testdrawline.R;
 import cn.nuosi.andoroid.testdrawline.dao.Book;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
@@ -198,8 +199,7 @@ public class SelectableTextHelper {
             public void onClick(View v) {
                 // 当TextView有可点击部分时将屏蔽TextView的单击事件
                 if (mTextView.getSelectionStart() == -1 && mTextView.getSelectionEnd() == -1) {
-                    resetSelectionInfo();
-                    hideSelectView();
+                    ((MainActivity) mContext).hideSelectView();
                 }
             }
         });
@@ -320,6 +320,14 @@ public class SelectableTextHelper {
     };
 
     /**
+     * 还原选中状态
+     */
+    public void resetSelectionStated() {
+        hideSelectView();
+        resetSelectionInfo();
+    }
+
+    /**
      * 隐藏选中状态的View
      */
     private void hideSelectView() {
@@ -370,8 +378,7 @@ public class SelectableTextHelper {
      */
     private void showSelectView(int x, int y) {
         // 重置上一次选中的状态
-        hideSelectView();
-        resetSelectionInfo();
+        ((MainActivity) mContext).hideSelectView();
         isHide = false;
         // 新建左右游标
         if (mStartHandle == null) mStartHandle = new CursorHandle(true);
@@ -393,6 +400,7 @@ public class SelectableTextHelper {
         mOperateWindow.show();
         // 恢复初始值
         DEFAULT_SELECTION_LENGTH = 1;
+        ((MainActivity) mContext).setmCurrentSelectableTextHelper(this);
     }
 
     /**
@@ -631,8 +639,7 @@ public class SelectableTextHelper {
     private void delUnderline() {
         MyClickableSpan mClickableSpan = clickSpanMap.get(mTextView.getSelectionStart());
         BackgroundColorSpan mbgSpan = bgSpanMap.get(mTextView.getSelectionStart());
-        hideSelectView();
-        resetSelectionInfo();
+        ((MainActivity) mContext).hideSelectView();
         mSpannable.removeSpan(mClickableSpan);
         mSpannable.removeSpan(mbgSpan);
         clickSpanMap.delete(mTextView.getSelectionStart());
@@ -689,8 +696,7 @@ public class SelectableTextHelper {
         mTextView.getViewTreeObserver().removeOnPreDrawListener(mOnPreDrawListener);
         mTextView.getViewTreeObserver().removeOnScrollChangedListener(mOnScrollChangedListener);
         // 取消显示状态
-        resetSelectionInfo();
-        hideSelectView();
+        ((MainActivity) mContext).hideSelectView();
         mStartHandle = null;
         mEndHandle = null;
         mOperateWindow = null;
@@ -785,8 +791,7 @@ public class SelectableTextHelper {
                         mSelectListener.onTextSelected(mSelectionInfo.getSelectionContent());
                     }
                     // 取消选中状态
-                    SelectableTextHelper.this.resetSelectionInfo();
-                    SelectableTextHelper.this.hideSelectView();
+                    ((MainActivity) mContext).hideSelectView();
                 }
             });
             contentView.findViewById(R.id.tv_select_all).setOnClickListener(new View.OnClickListener() {
@@ -805,8 +810,7 @@ public class SelectableTextHelper {
                 @Override
                 public void onClick(View v) {
                     // 直接选择记笔记时默认设置划线
-                    hideSelectView();
-                    resetSelectionInfo();
+                    ((MainActivity) mContext).hideSelectView();
                     Book book = getBook(mSelectionInfo.getStart());
                     int color = Color.RED;
                     if (book != null) {
@@ -832,8 +836,7 @@ public class SelectableTextHelper {
             contentView.findViewById(R.id.red_color).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    hideSelectView();
-                    resetSelectionInfo();
+                    ((MainActivity) mContext).hideSelectView();
                     TextPaint mTextPaint = getPaint(new TextPaint(
                             new Paint(Paint.ANTI_ALIAS_FLAG)), Color.RED);
                     showUnderLine(mTextPaint, Color.RED);
@@ -843,8 +846,7 @@ public class SelectableTextHelper {
             contentView.findViewById(R.id.blue_color).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    hideSelectView();
-                    resetSelectionInfo();
+                    ((MainActivity) mContext).hideSelectView();
                     TextPaint mTextPaint = getPaint(new TextPaint(
                             new Paint(Paint.ANTI_ALIAS_FLAG)), Color.BLUE);
                     showUnderLine(mTextPaint, Color.BLUE);

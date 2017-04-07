@@ -6,6 +6,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.text.Html;
+import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -21,7 +22,6 @@ import org.greenrobot.greendao.query.QueryBuilder;
 import java.util.List;
 
 import cn.nuosi.andoroid.testdrawline.SelectableTextView.SelectableTextHelper;
-import cn.nuosi.andoroid.testdrawline.SelectableTextView.TextLayoutUtil;
 import cn.nuosi.andoroid.testdrawline.dao.Book;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao;
 import cn.nuosi.andoroid.testdrawline.greendao.gen.BookDao.Properties;
@@ -29,11 +29,13 @@ import cn.nuosi.andoroid.testdrawline.info.BookInfo;
 
 public class MainActivity extends Activity implements View.OnClickListener {
 
+    private View scrollView;
     private TextView mTextView1;
     private TextView mTextView2;
     private TextView tv_font_small;
     private TextView tv_font_middle;
     private TextView tv_font_large;
+    private SelectableTextHelper mCurrentSelectableTextHelper;
     private SelectableTextHelper mSelectableTextHelper1;
     private SelectableTextHelper mSelectableTextHelper2;
 
@@ -120,6 +122,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void initView() {
+        scrollView = findViewById(R.id.scrollView);
         mTextView1 = (TextView) findViewById(R.id.test_tv1);
         mTextView2 = (TextView) findViewById(R.id.test_tv2);
         tv_font_small = (TextView) findViewById(R.id.tv_font_small);
@@ -134,6 +137,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void addListener() {
+//        scrollView.setOnClickListener(this);
         tv_font_small.setOnClickListener(this);
         tv_font_middle.setOnClickListener(this);
         tv_font_large.setOnClickListener(this);
@@ -218,21 +222,33 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
+        hideSelectView();
         switch (v.getId()) {
             case R.id.tv_font_small:
-                mTextView1.setTextSize(TextLayoutUtil.dp2px(this, 6));
-                mTextView2.setTextSize(TextLayoutUtil.dp2px(this, 6));
+                mTextView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+                mTextView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
                 break;
             case R.id.tv_font_middle:
-                mTextView1.setTextSize(TextLayoutUtil.dp2px(this, 8));
-                mTextView2.setTextSize(TextLayoutUtil.dp2px(this, 8));
+                mTextView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+                mTextView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
                 break;
             case R.id.tv_font_large:
-                mTextView1.setTextSize(TextLayoutUtil.dp2px(this, 10));
-                mTextView2.setTextSize(TextLayoutUtil.dp2px(this, 10));
+                mTextView1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 23);
+                mTextView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 23);
                 break;
         }
         mSelectableTextHelper1.changeTextSize();
         mSelectableTextHelper2.changeTextSize();
+    }
+
+    public void setmCurrentSelectableTextHelper(SelectableTextHelper selectableTextHelper) {
+        mCurrentSelectableTextHelper = selectableTextHelper;
+    }
+
+    public void hideSelectView() {
+        if (mCurrentSelectableTextHelper != null) {
+            mCurrentSelectableTextHelper.resetSelectionStated();
+            mCurrentSelectableTextHelper = null;
+        }
     }
 }
