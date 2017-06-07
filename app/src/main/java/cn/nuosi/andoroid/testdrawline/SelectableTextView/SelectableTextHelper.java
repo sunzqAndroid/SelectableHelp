@@ -141,7 +141,7 @@ public class SelectableTextHelper {
         length = mTextView.getText().length();
         // 由于 TextView 的文本的 BufferType 类型；
         // 是 SPANNABLE 时才可以设置 Span ，实现选中的效果；
-        mTextView.setText(mTextView.getText(), TextView.BufferType.SPANNABLE);
+        mTextView.setText(mTextView.getText(), TextView.BufferType.EDITABLE);
         // 初始化保存标记对象的集合
         clickSpanMap = new SparseArrayCompat<>();
         bgSpanMap = new SparseArrayCompat<>();
